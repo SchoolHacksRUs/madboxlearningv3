@@ -925,6 +925,12 @@
                 image: 'https://raw.githubusercontent.com/SchoolHacksRUs/madboxlearningv3/refs/heads/main/Gladdihoppers/images.jpeg',
                 gameUrl: 'https://raw.githubusercontent.com/SchoolHacksRUs/madboxlearningv3/refs/heads/main/Gladdihoppers/gladdihoppers.html',
                 embed: 1
+            },
+            {
+                title: 'Subway Surfers',
+                image: 'https://raw.githubusercontent.com/SchoolHacksRUs/madboxlearningv3/refs/heads/main/video-game-Subway-Surfers-Poster-diamond-by-numbers.jpg',
+                gameUrl: 'https://raw.githubusercontent.com/s0lace-games/s0lace/refs/heads/main/public/games/subway-surfers/index.html',
+                embed: 1
             }
         ];
 
