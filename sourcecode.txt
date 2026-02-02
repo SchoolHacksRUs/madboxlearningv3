@@ -594,6 +594,7 @@
                 <div class="changelog-item">
                     <div class="changelog-date">Feb 2, 2026</div>
                     <div class="changelog-text">+Added GladdiHoppers</div>
+                    <div class="changelog-text">+Added Subway Surfers</div>
                     <div class="changelog-date">Feb 1, 2026</div>
                     <div class="changelog-text">+Added Sandboxels</div>
                     <div class="changelog-text">+Added Balatro</div>
