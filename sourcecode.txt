@@ -1,3 +1,18 @@
+CodeShack
+Tutorials
+Tools
+Snippets
+References
+Packages
+HTML Viewer
+Enter your HTML code to see a live preview and test responsiveness.
+
+Tools
+HTML Viewer
+
+Add to Favorites
+Share
+Input HTML Code (or drag and drop an HTML file)
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -226,12 +241,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .effect-opt.active{border-color:var(--accent);background:rgba(124,107,255,.1);color:var(--accent2);}
 .effect-icon{font-size:20px;margin-bottom:4px;}
 
-/* BG uploader */
-.bg-upload-area{border:2px dashed var(--border2);border-radius:14px;padding:28px;text-align:center;cursor:pointer;transition:all .25s var(--ease);}
-.bg-upload-area:hover{border-color:var(--accent);background:rgba(124,107,255,.05);}
-.bg-upload-area input{display:none;}
-.bg-current{width:100%;height:90px;border-radius:10px;object-fit:cover;margin-bottom:10px;border:1px solid var(--border);display:none;}
-.bg-current.show{display:block;}
+/* WALLPAPER SECTION */
+.wp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-bottom:14px;}
+.wp-thumb{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;cursor:pointer;border:2px solid var(--border);transition:border-color .2s,transform .2s var(--ease),box-shadow .2s;background:var(--bg3);}
+.wp-thumb:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.wp-thumb.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,107,255,.2);}
+.wp-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s var(--ease);}
+.wp-thumb:hover img{transform:scale(1.06);}
+.wp-thumb-check{position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;font-size:9px;}
+.wp-thumb.active .wp-thumb-check{opacity:1;}
+.wp-thumb-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted);font-size:11px;font-family:var(--mono);}
+.wp-thumb-add svg{width:20px;height:20px;opacity:.4;}
+.wp-thumb-add input{display:none;}
 
 /* GAME LAUNCH OVERLAY */
 .game-launch-ov{position:fixed;inset:0;z-index:3000;background:rgba(7,7,10,.85);backdrop-filter:blur(22px) saturate(1.4);-webkit-backdrop-filter:blur(22px) saturate(1.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;animation:fadeInOv .22s var(--ease) forwards;}
@@ -528,25 +549,22 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 
         <!-- BACKGROUND -->
         <div class="s-section" id="sec-background" style="display:none;">
-          <div class="s-sec-title">Custom Background</div>
-          <div class="s-sec-sub">Upload your own image as the background</div>
-          <img class="bg-current" id="bgPreview" src="" alt="Background preview">
-          <div class="bg-upload-area" onclick="document.getElementById('bgFileInput').click()">
-            <input type="file" id="bgFileInput" accept="image/*" onchange="handleBgUpload(this)">
-            <div style="font-size:24px;margin-bottom:8px;">🖼️</div>
-            <div style="font-size:13px;font-weight:500;color:var(--text);">Click to upload image</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;">PNG, JPG, GIF, WebP supported</div>
-          </div>
-          <div style="margin-top:14px;display:flex;gap:8px;">
-            <button class="btn-sm" style="flex:1;" onclick="clearBg()">Clear Background</button>
-          </div>
-          <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:18px;">
-            <div class="s-sec-title" style="margin-bottom:4px;">Dynamic Sidebar</div>
-            <div class="s-sec-sub">Adapt sidebar colors to match your background image</div>
+          <div class="s-sec-title">Wallpaper</div>
+          <div class="s-sec-sub">Choose a preset or upload your own</div>
+          <div class="wp-grid" id="wpGrid"></div>
+
+          <div style="border-top:1px solid var(--border);padding-top:18px;margin-top:6px;display:flex;flex-direction:column;gap:0;">
             <div class="toggle-row">
               <div class="toggle-info">
-                <div class="toggle-label">Dynamic Sidebar Color</div>
-                <div class="toggle-desc">Sidebar tints to your background's dominant color</div>
+                <div class="toggle-label">Dynamic Theme</div>
+                <div class="toggle-desc">Auto-derive accent &amp; background colors from the wallpaper</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="toggleDynTheme" onchange="onToggleDynTheme(this)"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-info">
+                <div class="toggle-label">Dynamic Sidebar</div>
+                <div class="toggle-desc">Sidebar tints to match the wallpaper's dominant color</div>
               </div>
               <label class="toggle"><input type="checkbox" id="toggleDynSidebar" onchange="onToggleDynSidebar(this)"><span class="toggle-slider"></span></label>
             </div>
@@ -744,7 +762,8 @@ let state = {
   username: null, theme: 'default', panicKey: '`', panicUrl: 'https://www.google.com',
   experience: 'games', onboarded: false, library: [],
   effect: 'snow', effectEnabled: true,
-  customBg: null, dynSidebar: false
+  customBg: null, dynSidebar: false,
+  dynTheme: false, activeWallpaper: null
 };
 function persist() { localStorage.setItem('syn4', JSON.stringify(state)); }
 function restore() {
@@ -790,38 +809,6 @@ function applyTheme(k) {
   renderObThemeGrid();
   // Update dynamic sidebar if no custom bg color override
   if(!state.dynSidebarColor) applyDefaultSidebar();
-}
-
-function applyDefaultSidebar() {
-  document.getElementById('sidebar').style.removeProperty('background');
-  document.getElementById('sidebar').style.removeProperty('border-color');
-}
-
-/* ════ DYNAMIC SIDEBAR (from image) ════ */
-function extractDominantColor(imgEl, cb) {
-  const c = document.createElement('canvas');
-  c.width = 50; c.height = 50;
-  const ctx2 = c.getContext('2d');
-  try {
-    ctx2.drawImage(imgEl, 0, 0, 50, 50);
-    const d = ctx2.getImageData(0, 0, 50, 50).data;
-    let r=0,g=0,b=0,count=0;
-    for(let i=0;i<d.length;i+=4*5){r+=d[i];g+=d[i+1];b+=d[i+2];count++;}
-    r=Math.floor(r/count); g=Math.floor(g/count); b=Math.floor(b/count);
-    cb(r,g,b);
-  } catch(e) { cb(14,14,19); }
-}
-
-function applyDynSidebar(imgEl) {
-  if(!state.dynSidebar) { applyDefaultSidebar(); return; }
-  if(!imgEl) { applyDefaultSidebar(); return; }
-  extractDominantColor(imgEl, (r,g,b) => {
-    const darken = (v,a) => Math.max(0,Math.floor(v*a));
-    const sidebar = document.getElementById('sidebar');
-    sidebar.style.background = `rgba(${darken(r,.35)},${darken(g,.35)},${darken(b,.35)},0.92)`;
-    sidebar.style.borderColor = `rgba(${r},${g},${b},0.15)`;
-    sidebar.style.backdropFilter = 'blur(20px) saturate(1.5)';
-  });
 }
 
 /* ════ GAMES LIST ════ */
@@ -922,20 +909,9 @@ function boot() {
   applyTheme(state.theme);
   document.getElementById('panicDisp').textContent = state.panicKey;
   document.getElementById('panicUrlInput').value = state.panicUrl;
-  // Restore bg
+  // Restore wallpaper
   if(state.customBg) {
-    const bgEl = document.getElementById('customBg');
-    bgEl.style.backgroundImage = `url(${state.customBg})`;
-    bgEl.style.opacity = '1';
-    // Restore dyn sidebar
-    if(state.dynSidebar) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => applyDynSidebar(img);
-      img.src = state.customBg;
-    }
-    const prev = document.getElementById('bgPreview');
-    if(prev) { prev.src = state.customBg; prev.classList.add('show'); }
+    applyWallpaper(state.customBg);
   }
 
   const bar = document.getElementById('ld-bar'), status = document.getElementById('ld-status');
@@ -972,6 +948,7 @@ function renderAll() {
   renderGames();
   renderThemeGrid();
   renderEffectGrid();
+  renderWpGrid();
   renderAccount();
   renderLibrary();
   renderLibraryPanel();
@@ -981,6 +958,8 @@ function renderAll() {
   if(te) te.checked = !!state.effectEnabled;
   const tds = document.getElementById('toggleDynSidebar');
   if(tds) tds.checked = !!state.dynSidebar;
+  const tdt = document.getElementById('toggleDynTheme');
+  if(tdt) tdt.checked = !!state.dynTheme;
   document.getElementById('infoExp').textContent = state.experience==='full'?'Games & Proxy':'Games Only';
   document.getElementById('infoTheme').textContent = THEMES[state.theme]?.name || state.theme;
   document.getElementById('infoEffect').textContent = (state.effectEnabled ? EFFECTS[state.effect]?.label : 'Off') || 'Off';
@@ -1278,14 +1257,11 @@ async function loadData(){
       document.getElementById('panicDisp').textContent = state.panicKey;
       document.getElementById('panicUrlInput').value = state.panicUrl;
       if(state.experience==='full') document.getElementById('navProxy').style.display='';
-      if(state.customBg){
-        document.getElementById('customBg').style.backgroundImage=`url(${state.customBg})`;
-        document.getElementById('customBg').style.opacity='1';
-        const prev=document.getElementById('bgPreview');
-        if(prev){prev.src=state.customBg;prev.classList.add('show');}
-      }
+      if(state.customBg) applyWallpaper(state.customBg);
       const tds = document.getElementById('toggleDynSidebar');
       if(tds) tds.checked = !!state.dynSidebar;
+      const tdt = document.getElementById('toggleDynTheme');
+      if(tdt) tdt.checked = !!state.dynTheme;
       const te = document.getElementById('toggleEffect');
       if(te) te.checked = !!state.effectEnabled;
       state.onboarded = true; persist();
@@ -1309,6 +1285,7 @@ document.querySelectorAll('.sn-item').forEach(item=>{
     ALL_SECS.forEach(s=>{const el=document.getElementById('sec-'+s);if(el)el.style.display=s===sec?'block':'none';});
     if(sec==='appearance') renderThemeGrid();
     if(sec==='effects') renderEffectGrid();
+    if(sec==='background') renderWpGrid();
   });
 });
 
@@ -1344,45 +1321,248 @@ function onToggleEffect(el) {
   startEffect();
 }
 
-/* ════ BACKGROUND ════ */
-function handleBgUpload(input) {
+/* ════ WALLPAPERS ════ */
+const PRESET_WALLPAPERS = [
+  { id:'wp_none',   label:'None',          url: null },
+  { id:'wp_1',  label:'Nebula',        url:'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1600&q=80&auto=format' },
+  { id:'wp_2',  label:'Aurora',        url:'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1600&q=80&auto=format' },
+  { id:'wp_3',  label:'City Rain',     url:'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1600&q=80&auto=format' },
+  { id:'wp_4',  label:'Forest Mist',   url:'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1600&q=80&auto=format' },
+  { id:'wp_5',  label:'Deep Ocean',    url:'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=1600&q=80&auto=format' },
+  { id:'wp_6',  label:'Crimson Peaks', url:'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&q=80&auto=format' },
+  { id:'wp_7',  label:'Volcanic',      url:'https://images.unsplash.com/photo-1611048268330-53de574cae3b?w=1600&q=80&auto=format' },
+  { id:'wp_8',  label:'Neon Tokyo',    url:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1600&q=80&auto=format' },
+  { id:'wp_9',  label:'Desert Dusk',   url:'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1600&q=80&auto=format' },
+  { id:'wp_10', label:'Glacier',       url:'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1600&q=80&auto=format' },
+  { id:'wp_11', label:'Sakura',        url:'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=1600&q=80&auto=format' },
+];
+
+// Render the wallpaper grid
+function renderWpGrid() {
+  const g = document.getElementById('wpGrid'); if(!g) return;
+  let html = PRESET_WALLPAPERS.map(wp => {
+    const active = state.activeWallpaper === wp.id;
+    if(!wp.url) {
+      return `<div class="wp-thumb ${active?'active':''}" onclick="selectWallpaper('${wp.id}',null)" title="No wallpaper" style="aspect-ratio:16/9;">
+        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg3);color:var(--muted);font-size:10px;font-family:var(--mono);">none</div>
+        <div class="wp-thumb-check">✓</div>
+      </div>`;
+    }
+    return `<div class="wp-thumb ${active?'active':''}" onclick="selectWallpaper('${wp.id}','${wp.url}')" title="${wp.label}">
+      <img src="${wp.url.replace('w=1600','w=200')}" alt="${wp.label}" loading="lazy">
+      <div class="wp-thumb-check">✓</div>
+    </div>`;
+  }).join('');
+  // Custom upload tile — show thumbnail if custom is active
+  const customActive = state.activeWallpaper === 'wp_custom';
+  html += `<div class="wp-thumb wp-thumb-add ${customActive?'active':''}" onclick="document.getElementById('wpFileInput').click()" title="Upload custom">
+    <input type="file" id="wpFileInput" accept="image/*" onchange="handleWpUpload(this)">
+    ${customActive && state.customBg
+      ? `<img src="${state.customBg}" alt="custom" style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg><span>upload</span>`
+    }
+    <div class="wp-thumb-check">✓</div>
+  </div>`;
+  g.innerHTML = html;
+}
+
+function selectWallpaper(id, url) {
+  state.activeWallpaper = id;
+  if(id === 'wp_none') {
+    state.customBg = null;
+    applyWallpaper(null);
+  } else if(id !== 'wp_custom') {
+    state.customBg = url; // store the full-res URL
+    applyWallpaper(url);
+  }
+  persist();
+  renderWpGrid();
+}
+
+function handleWpUpload(input) {
   const file = input.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
     const dataUrl = ev.target.result;
     state.customBg = dataUrl;
+    state.activeWallpaper = 'wp_custom';
     persist();
-    const bgEl = document.getElementById('customBg');
-    bgEl.style.backgroundImage = `url(${dataUrl})`;
-    bgEl.style.opacity = '1';
-    const prev = document.getElementById('bgPreview');
-    if(prev) { prev.src = dataUrl; prev.classList.add('show'); }
-    showToast('✓ Background set!');
-    if(state.dynSidebar) {
-      const img = new Image();
-      img.onload = () => applyDynSidebar(img);
-      img.src = dataUrl;
-    }
+    applyWallpaper(dataUrl);
+    renderWpGrid();
+    showToast('✓ Wallpaper set!');
   };
   reader.readAsDataURL(file);
 }
-function clearBg() {
-  state.customBg = null;
-  state.dynSidebarColor = null;
-  persist();
-  document.getElementById('customBg').style.backgroundImage = '';
-  document.getElementById('customBg').style.opacity = '0';
-  const prev = document.getElementById('bgPreview');
-  if(prev) { prev.src=''; prev.classList.remove('show'); }
-  applyDefaultSidebar();
-  showToast('Background cleared');
+
+function applyWallpaper(url) {
+  const bgEl = document.getElementById('customBg');
+  if(!url) {
+    bgEl.style.backgroundImage = '';
+    bgEl.style.opacity = '0';
+    if(state.dynTheme) applyTheme(state.theme); // revert to stored theme
+    applyDefaultSidebar();
+    return;
+  }
+  bgEl.style.backgroundImage = `url(${url})`;
+  bgEl.style.opacity = '1';
+
+  // Load image for color sampling
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    if(state.dynSidebar) applyDynSidebar(img);
+    if(state.dynTheme)   applyDynThemeFromImg(img);
+  };
+  img.onerror = () => {
+    // For external URLs that block canvas, still apply sidebar via CSS hack
+    if(state.dynSidebar) applyDynSidebarFallback(url);
+  };
+  img.src = url;
 }
+
+/* ════ DYNAMIC THEME FROM IMAGE ════ */
+function sampleImageColors(imgEl) {
+  // Sample a 40x40 thumbnail for speed
+  const c = document.createElement('canvas');
+  c.width = 40; c.height = 40;
+  const ctx2 = c.getContext('2d');
+  try {
+    ctx2.drawImage(imgEl, 0, 0, 40, 40);
+    const d = ctx2.getImageData(0, 0, 40, 40).data;
+    // Build a rough palette by averaging quadrants
+    const quads = [{ r:0,g:0,b:0,n:0 },{ r:0,g:0,b:0,n:0 },{ r:0,g:0,b:0,n:0 },{ r:0,g:0,b:0,n:0 }];
+    for(let y=0;y<40;y++) for(let x=0;x<40;x++) {
+      const qi = (y<20?0:2)+(x<20?0:1);
+      const i=(y*40+x)*4;
+      quads[qi].r+=d[i]; quads[qi].g+=d[i+1]; quads[qi].b+=d[i+2]; quads[qi].n++;
+    }
+    const avg = quads.map(q=>({r:Math.round(q.r/q.n),g:Math.round(q.g/q.n),b:Math.round(q.b/q.n)}));
+    // Overall average
+    const all = {r:0,g:0,b:0};
+    avg.forEach(q=>{all.r+=q.r;all.g+=q.g;all.b+=q.b;});
+    all.r=Math.round(all.r/4); all.g=Math.round(all.g/4); all.b=Math.round(all.b/4);
+    // Find most saturated/vivid quadrant for accent
+    let bestSat=0, accent=avg[0];
+    avg.forEach(q=>{
+      const max=Math.max(q.r,q.g,q.b), min=Math.min(q.r,q.g,q.b);
+      const sat = max>0?(max-min)/max:0;
+      if(sat>bestSat){bestSat=sat;accent=q;}
+    });
+    return { avg: all, accent, quads: avg };
+  } catch(e) { return null; }
+}
+
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');}
+
+function applyDynThemeFromImg(imgEl) {
+  const colors = sampleImageColors(imgEl);
+  if(!colors) return;
+  const { avg, accent } = colors;
+
+  // Build dark bg variants from the average color (keep dark)
+  const darken = (v,f) => Math.min(255,Math.max(0,Math.round(v*f)));
+  const mix = (a,b,t) => Math.round(a+(b-a)*t);
+
+  const bg   = rgbToHex(darken(avg.r,.08), darken(avg.g,.08), darken(avg.b,.08));
+  const bg2  = rgbToHex(darken(avg.r,.13), darken(avg.g,.13), darken(avg.b,.13));
+  const bg3  = rgbToHex(darken(avg.r,.20), darken(avg.g,.20), darken(avg.b,.20));
+  const bg4  = rgbToHex(darken(avg.r,.27), darken(avg.g,.27), darken(avg.b,.27));
+
+  // Boost accent saturation
+  const aMax = Math.max(accent.r,accent.g,accent.b);
+  const boost = aMax > 0 ? Math.min(255/aMax, 1.6) : 1;
+  const ar = Math.min(255,Math.round(accent.r*boost));
+  const ag = Math.min(255,Math.round(accent.g*boost));
+  const ab = Math.min(255,Math.round(accent.b*boost));
+  const accentHex  = rgbToHex(ar,ag,ab);
+  const accent2Hex = rgbToHex(mix(ar,255,.28),mix(ag,255,.28),mix(ab,255,.28));
+  const accent3Hex = rgbToHex(mix(ar,255,.52),mix(ag,255,.52),mix(ab,255,.52));
+
+  // Text: high contrast against bg
+  const lum = 0.299*avg.r + 0.587*avg.g + 0.114*avg.b;
+  const text   = lum < 100 ? '#eeeef3' : '#0a0a0f';
+  const muted  = lum < 100 ? rgbToHex(darken(avg.r,.45),darken(avg.g,.45),darken(avg.b,.45)) : '#6b7280';
+  const muted2 = lum < 100 ? rgbToHex(darken(avg.r,.65),darken(avg.g,.65),darken(avg.b,.65)) : '#9ca3af';
+
+  const r = document.documentElement.style;
+  r.setProperty('--bg',   bg);
+  r.setProperty('--bg2',  bg2);
+  r.setProperty('--bg3',  bg3);
+  r.setProperty('--bg4',  bg4);
+  r.setProperty('--accent',  accentHex);
+  r.setProperty('--accent2', accent2Hex);
+  r.setProperty('--accent3', accent3Hex);
+  r.setProperty('--text',    text);
+  r.setProperty('--muted',   muted);
+  r.setProperty('--muted2',  muted2);
+  r.setProperty('--border',  'rgba(255,255,255,0.07)');
+  r.setProperty('--border2', 'rgba(255,255,255,0.14)');
+  document.body.style.background = bg;
+}
+
+function onToggleDynTheme(el) {
+  state.dynTheme = el.checked;
+  persist();
+  if(el.checked && state.customBg) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => applyDynThemeFromImg(img);
+    img.onerror = () => {}; // CORS block on some presets
+    img.src = state.customBg;
+  } else {
+    applyTheme(state.theme); // revert to stored theme
+  }
+}
+
+/* ════ BACKGROUND / SIDEBAR ════ */
+function extractDominantColor(imgEl, cb) {
+  const c = document.createElement('canvas');
+  c.width = 50; c.height = 50;
+  const ctx2 = c.getContext('2d');
+  try {
+    ctx2.drawImage(imgEl, 0, 0, 50, 50);
+    const d = ctx2.getImageData(0, 0, 50, 50).data;
+    let r=0,g=0,b=0,count=0;
+    for(let i=0;i<d.length;i+=4*5){r+=d[i];g+=d[i+1];b+=d[i+2];count++;}
+    r=Math.floor(r/count); g=Math.floor(g/count); b=Math.floor(b/count);
+    cb(r,g,b);
+  } catch(e) { cb(14,14,19); }
+}
+
+function applyDefaultSidebar() {
+  const s = document.getElementById('sidebar');
+  s.style.removeProperty('background');
+  s.style.removeProperty('border-color');
+  s.style.removeProperty('backdrop-filter');
+}
+
+function applyDynSidebar(imgEl) {
+  if(!state.dynSidebar) { applyDefaultSidebar(); return; }
+  extractDominantColor(imgEl, (r,g,b) => {
+    const dk = (v,a) => Math.max(0,Math.floor(v*a));
+    const sidebar = document.getElementById('sidebar');
+    sidebar.style.background = `rgba(${dk(r,.28)},${dk(g,.28)},${dk(b,.28)},0.88)`;
+    sidebar.style.borderColor = `rgba(${r},${g},${b},0.12)`;
+    sidebar.style.backdropFilter = 'blur(24px) saturate(1.6)';
+  });
+}
+
+function applyDynSidebarFallback(url) {
+  // When canvas is blocked by CORS, use a CSS backdrop approximation
+  const sidebar = document.getElementById('sidebar');
+  sidebar.style.background = 'rgba(0,0,0,0.45)';
+  sidebar.style.backdropFilter = 'blur(24px) saturate(1.4)';
+  sidebar.style.borderColor = 'rgba(255,255,255,0.06)';
+}
+
 function onToggleDynSidebar(el) {
   state.dynSidebar = el.checked;
   persist();
   if(el.checked && state.customBg) {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => applyDynSidebar(img);
+    img.onerror = () => applyDynSidebarFallback(state.customBg);
     img.src = state.customBg;
   } else {
     applyDefaultSidebar();
@@ -1449,3 +1629,154 @@ watchForCounter();
 </script>
 </body>
 </html>
+3094
+  if(bb) bb.style.display = casino.balance < 0.5 ? '' : 'none';
+3095
+}
+3096
+​
+3097
+/* ══════════════════════════════════════
+3098
+   CASINO INIT
+3099
+══════════════════════════════════════ */
+3100
+function initCasino() {
+3101
+  casinoRestore();
+3102
+  updateBalanceUI();
+3103
+  renderCases();
+3104
+  renderBattleCaseSelect();
+3105
+  // Auto-start crash when view is first opened
+3106
+  document.querySelector('[data-tab="casino"]').addEventListener('click', ()=>{
+3107
+    setTimeout(()=>{
+3108
+      if(document.getElementById('cv-crash').classList.contains('active')) {
+3109
+        initCrash();
+3110
+      }
+3111
+    }, 100);
+3112
+  });
+3113
+}
+3114
+​
+3115
+boot();
+3116
+initCasino();
+3117
+</script>
+3118
+</body>
+3119
+</html>
+View/Run HTML
+Open HTML File...
+Fetch URL
+Format HTML
+Clear Input
+Sample HTML
+Live HTML Preview
+
+
+
+
+
+Download Input HTML Copy Input HTML
+About the HTML Viewer Tool
+This online HTML Viewer allows you to type or paste HTML code and see it rendered live in a preview pane. It's a handy tool for quickly testing HTML snippets, viewing the structure of HTML documents, or experimenting with HTML, CSS, and embedded JavaScript. You can also preview your code in common device viewport sizes.
+
+Simply enter your code in the editor. If "Auto-update Preview" is checked, the preview will update as you type. Otherwise, click the "View/Run HTML" button. Use the device icons to change the preview size.
+
+How to Use This Tool
+Enter your HTML code (including any CSS within <style> tags or JavaScript within <script> tags) into the input editor.
+Alternatively, click "Open HTML File..." to load an HTML or text file from your computer.
+The preview pane below the input editor will render your HTML code. The "Auto-update Preview" option controls if the rendering happens as you type or only when you click the "View/Run HTML" button.
+Click the Mobile, Tablet, or Desktop icons to resize the preview pane to simulate common device widths.
+Use the "Sample HTML" button to load a demonstration snippet.
+"Clear Input" will erase the content from the editor and the preview.
+"Copy Input HTML" and "Download Input HTML" allow you to copy or save the HTML code you've entered.
+All rendering is done client-side in your browser within an iframe. The `sandbox` attribute is used on the iframe for basic security, allowing scripts and forms but restricting some other capabilities.
+
+Frequently Asked Questions
+What can I use the HTML Viewer for?
+You can use it to quickly test HTML, CSS, and JavaScript snippets, preview the layout of a webpage section, check how different browsers might render simple HTML (by observing the iframe), test responsiveness with the viewport size buttons, or for educational purposes to see HTML code in action.
+
+Does the viewer execute JavaScript?
+Yes, JavaScript within <script> tags in your input HTML will be executed within the preview iframe. The iframe is sandboxed with `allow-scripts` and `allow-same-origin` among others, but always be cautious when pasting code from untrusted sources.
+
+Can I view external CSS or JavaScript files?
+If your HTML code links to external CSS or JavaScript files (e.g., using <link href="styles.css"> or <script src="script.js"></script>), the browser will attempt to load them. However, this is subject to CORS (Cross-Origin Resource Sharing) policies. If the external resources are on a different domain that doesn't allow cross-origin requests, they might not load in the preview.
+
+How are the responsive viewport sizes determined?
+The tool uses common preset widths for mobile (e.g., 375px), tablet (e.g., 768px), and desktop (100% width of the preview area). The height is also adjusted to typical device aspect ratios for mobile and tablet, while desktop view maintains a fixed or larger height for better viewing.
+
+Is my HTML code saved on your server?
+No. All operations, including rendering your HTML, are performed client-side within your browser. Your code is not sent to or stored on our servers.
+
+Is this HTML Viewer tool free?
+Yes, this online HTML Viewer is completely free to use.
+
+Related Tools
+HTML Utilities
+Testimonial Generator
+Mailto Link Generator
+HTML Stripper
+HTML Validator
+URL & Link Extractor
+HTML Entity Encoder/Decoder
+HTML Table Generator
+HTML to Image Converter
+HTML to Markdown Converter
+Markdown to HTML Converter
+JSON to HTML Table Converter
+HTML Table to JSON Converter
+HTML Formatter
+HTML Table Sorter
+Markdown Editor
+HTML Minifier
+SVG Viewer
+HTML to PDF Converter
+OPML Viewer
+XML Viewer
+EXIF Viewer & Metadata Remover
+CSV Viewer
+CSV to HTML Table Converter
+Meta Tag Generator
+JSON Compare
+HTML Compare
+CodeShackCodeShack.io
+Resources
+Tutorials
+Tools
+Snippets
+References
+Tools
+Live Code Editor
+JSON Sorter
+HTML Viewer
+Images to Sprite Sheet Generator
+Company
+About Us
+Contact Us
+Resend a Receipt
+License Agreement
+Packages
+PHP
+Python
+Node.js
+PHP Scripts Bundle
+© 2026 CodeShack. All Rights Reserved. By using this website you've read the Privacy Policy and accept the Terms and Conditions.
+
+Tools
