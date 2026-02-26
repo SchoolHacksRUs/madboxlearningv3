@@ -22,7 +22,12 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;}
 ::selection{background:rgba(124,107,255,.28);}
-#snow{position:fixed;inset:0;pointer-events:none;z-index:0;}
+#bg-fx{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.fx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:2px;}
+.fx-opt{padding:9px 10px;border-radius:11px;border:2px solid var(--border);cursor:pointer;text-align:center;font-size:11px;background:var(--bg3);color:var(--muted2);font-weight:500;transition:all .22s;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.fx-opt:hover{border-color:var(--border2);transform:translateY(-1px);}
+.fx-opt.active{border-color:var(--accent);background:rgba(124,107,255,.1);color:var(--accent2);}
+.fx-icon{font-size:18px;line-height:1;}
 
 /* ── ONBOARDING ── */
 #onboarding{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;transition:opacity .55s var(--ease),visibility .55s;}
@@ -493,6 +498,39 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 .mi-badge{font-size:9px;padding:2px 7px;border-radius:99px;background:rgba(167,139,250,.18);color:var(--accent2);font-family:var(--mono);}
 .mi-desc{font-size:12px;color:var(--muted2);line-height:1.65;}
 
+/* IMPORT LOG PANEL */
+#import-log{
+  position:fixed;
+  top:50%;right:0;
+  transform:translateY(-50%) translateX(100%);
+  z-index:8000;
+  width:280px;
+  background:var(--bg2);
+  border:1px solid var(--border2);
+  border-right:none;
+  border-radius:18px 0 0 18px;
+  padding:20px;
+  display:flex;flex-direction:column;gap:12px;
+  transition:transform .42s var(--spring);
+  box-shadow:-8px 0 40px rgba(0,0,0,.5);
+  pointer-events:all;
+}
+#import-log.show{transform:translateY(-50%) translateX(0);}
+.il-header{display:flex;align-items:center;justify-content:space-between;}
+.il-title{font-size:13px;font-weight:700;font-family:'Ubuntu',sans-serif;letter-spacing:-.01em;}
+.il-close{width:24px;height:24px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.il-close:hover{color:var(--text);border-color:var(--border2);}
+.il-sub{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-top:-6px;}
+.il-list{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;}
+.il-row{display:flex;align-items:center;gap:9px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-size:12px;}
+.il-row-icon{width:22px;height:22px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;}
+.il-row-icon.ls{background:rgba(59,130,246,.18);color:#93c5fd;}
+.il-row-icon.ck{background:rgba(251,191,36,.14);color:#fcd34d;}
+.il-row-icon.idb{background:rgba(124,107,255,.18);color:var(--accent2);}
+.il-row-name{flex:1;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.il-row-count{font-size:10px;color:var(--muted2);font-family:var(--mono);flex-shrink:0;}
+.il-none{font-size:12px;color:var(--muted);text-align:center;padding:14px 0;}
+
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;z-index:9000;background:var(--bg2);border:1px solid var(--border2);border-radius:11px;padding:10px 18px;font-size:12px;color:var(--text);transform:translateY(16px);opacity:0;transition:all .3s var(--spring);pointer-events:none;font-weight:500;}
 .toast.show{transform:translateY(0);opacity:1;}
@@ -510,7 +548,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
 </style>
 </head>
 <body>
-<canvas id="snow"></canvas>
+<canvas id="bg-fx"></canvas>
 
 <!-- ONBOARDING -->
 <div id="onboarding">
@@ -776,11 +814,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--f
   </div>
 </div>
 
+<!-- IMPORT LOG -->
+<div id="import-log">
+  <div class="il-header">
+    <div class="il-title">Import Log</div>
+    <button class="il-close" onclick="closeImportLog()">✕</button>
+  </div>
+  <div class="il-sub" id="il-sub">—</div>
+  <div class="il-list" id="il-list"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* ════ SNOW ════ */
-const canvas=document.getElementById('snow'),ctx=canvas.getContext('2d');
+const canvas=document.getElementById('bg-fx'),ctx=canvas.getContext('2d');
 let flakes=[];
 function initSnow(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;flakes=Array.from({length:140},()=>{const r=Math.random();return{x:Math.random()*canvas.width,y:Math.random()*canvas.height,rad:.4+r*r*2.6,op:.02+r*.14,sp:.08+r*.32,dr:(Math.random()-.5)*.3,wb:Math.random()*Math.PI*2};});}
 function drawSnow(){ctx.clearRect(0,0,canvas.width,canvas.height);flakes.forEach(f=>{f.y+=f.sp;f.wb+=.007;f.x+=Math.sin(f.wb)*f.dr;if(f.y>canvas.height){f.y=-4;f.x=Math.random()*canvas.width;}ctx.beginPath();ctx.arc(f.x,f.y,f.rad,0,Math.PI*2);ctx.fillStyle=`rgba(255,255,255,${f.op})`;ctx.fill();});requestAnimationFrame(drawSnow);}
@@ -1050,18 +1098,19 @@ function exitGame(){
   const wrap=document.getElementById('game-frame-wrap');
   const iframe=document.getElementById('game-iframe');
 
-  // exit fullscreen first if needed
   if(isFullscreen){if(document.exitFullscreen)document.exitFullscreen();isFullscreen=false;}
 
-  // fade out
   wrap.style.transition='opacity .28s ease';
   wrap.style.opacity='0';
   setTimeout(()=>{
     wrap.classList.remove('active');
     wrap.style.opacity='';
     wrap.style.transition='';
-    iframe.src='about:blank';
+    // replace with blank srcdoc — avoids triggering parent navigation
+    iframe.removeAttribute('src');
+    iframe.srcdoc='';
     activeGameIdx=null;
+    activeGameUrl=null;
     hideGameControls();
   },280);
 }
@@ -1195,6 +1244,71 @@ async function exportData(){
   }
 }
 
+function closeImportLog(){document.getElementById('import-log').classList.remove('show');}
+
+function showImportLog(parsed){
+  const panel=document.getElementById('import-log');
+  const list=document.getElementById('il-list');
+  const sub=document.getElementById('il-sub');
+  const rows=[];
+
+  /* localStorage keys */
+  if(parsed.localStorage){
+    const keys=Object.keys(parsed.localStorage).filter(k=>k!=='syn4');
+    if(keys.length){
+      rows.push({icon:'ls',iconTxt:'LS',name:'localStorage',count:`${keys.length} key${keys.length!==1?'s':''}`});
+      // also show individual notable keys
+      keys.slice(0,8).forEach(k=>{
+        rows.push({icon:'ls',iconTxt:'·',name:k,count:''});
+      });
+      if(keys.length>8)rows.push({icon:'ls',iconTxt:'…',name:`+${keys.length-8} more keys`,count:''});
+    }
+  }
+
+  /* cookies */
+  if(parsed.cookies&&parsed.cookies.trim()){
+    const ckList=parsed.cookies.split(';').map(s=>s.trim()).filter(Boolean);
+    if(ckList.length){
+      rows.push({icon:'ck',iconTxt:'🍪',name:'Cookies',count:`${ckList.length} item${ckList.length!==1?'s':''}`});
+    }
+  }
+
+  /* IndexedDB databases */
+  if(parsed.indexedDB){
+    const dbs=Object.entries(parsed.indexedDB);
+    if(dbs.length){
+      dbs.forEach(([dbName,dbData])=>{
+        const stores=Object.keys(dbData);
+        const totalRows=stores.reduce((acc,s)=>acc+(Array.isArray(dbData[s])?dbData[s].length:0),0);
+        rows.push({icon:'idb',iconTxt:'DB',name:dbName,count:`${totalRows} record${totalRows!==1?'s':''}`});
+      });
+    }
+  }
+
+  /* synapse library */
+  if(parsed.synapseState?.library?.length){
+    rows.push({icon:'ls',iconTxt:'♥',name:'Game Library',count:`${parsed.synapseState.library.length} game${parsed.synapseState.library.length!==1?'s':''}`});
+  }
+
+  const date=parsed.exportedAt?new Date(parsed.exportedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'Unknown date';
+  sub.textContent=`Exported ${date}`;
+
+  if(!rows.length){
+    list.innerHTML='<div class="il-none">No game data found in this file.</div>';
+  } else {
+    list.innerHTML=rows.map(r=>`
+      <div class="il-row">
+        <div class="il-row-icon ${r.icon}">${r.iconTxt}</div>
+        <div class="il-row-name">${r.name}</div>
+        ${r.count?`<div class="il-row-count">${r.count}</div>`:''}
+      </div>`).join('');
+  }
+
+  panel.classList.add('show');
+  // auto-hide after 12s
+  setTimeout(()=>panel.classList.remove('show'),12000);
+}
+
 function loadData(){
   const input=document.createElement('input');input.type='file';input.accept='.json';
   input.onchange=e=>{
@@ -1204,29 +1318,24 @@ function loadData(){
       try{
         const parsed=JSON.parse(ev.target.result);
 
-        /* detect full export vs old simple export */
         const src=parsed.synapseState||parsed;
         Object.assign(state,src);
         if(!state.library)state.library=[];
         persist();
 
-        /* restore localStorage */
         if(parsed.localStorage){
           for(const [k,v] of Object.entries(parsed.localStorage)){
             try{localStorage.setItem(k,v);}catch(e){}
           }
         }
 
-        /* restore cookies */
         if(parsed.cookies){
           for(const pair of parsed.cookies.split(';')){
             const trimmed=pair.trim();if(trimmed)document.cookie=trimmed;
           }
         }
 
-        /* restore IndexedDB */
         if(parsed.indexedDB&&Object.keys(parsed.indexedDB).length){
-          showToast('Restoring game saves…');
           await restoreIndexedDB(parsed.indexedDB);
         }
 
@@ -1236,7 +1345,9 @@ function loadData(){
         if(state.experience==='full')document.getElementById('navProxy').style.display='';
         state.onboarded=true;persist();
         document.getElementById('onboarding').classList.add('hide');
-        renderAll();showToast('✓ Data loaded!');
+        renderAll();
+        showToast('✓ Data loaded!');
+        showImportLog(parsed);
       }catch(err){showToast('Invalid file');}
     };r.readAsText(f);
   };input.click();
